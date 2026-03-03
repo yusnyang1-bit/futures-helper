@@ -3,80 +3,80 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Margin Terminal Elite v2.6.0</title>
+    <title>Margin Elite v2.6.1</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Noto+Sans+TC:wght@400;700;900&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;800&family=Noto+Sans+TC:wght@400;700;900&display=swap');
         
-        :root {
-            --bg: #020617; --card: rgba(30, 41, 59, 0.7); --text: #f8fafc; --border: rgba(255, 255, 255, 0.1);
-        }
-        .light-mode {
-            --bg: #f1f5f9; --card: rgba(255, 255, 255, 0.8); --text: #0f172a; --border: rgba(0, 0, 0, 0.1);
-        }
+        :root { --bg: #020617; --card: rgba(30, 41, 59, 0.7); --text: #f8fafc; --border: rgba(255, 255, 255, 0.1); --accent: #60a5fa; }
+        .light-mode { --bg: #f1f5f9; --card: rgba(255, 255, 255, 0.9); --text: #0f172a; --border: rgba(0, 0, 0, 0.1); --accent: #2563eb; }
 
-        body { font-family: 'Noto Sans TC', sans-serif; background-color: var(--bg); color: var(--text); transition: all 0.3s ease; }
+        body { font-family: 'Noto Sans TC', sans-serif; background-color: var(--bg); color: var(--text); transition: background 0.3s; }
         .mono { font-family: 'JetBrains Mono', monospace; }
-        .glass { background: var(--card); backdrop-filter: blur(16px); border: 1px solid var(--border); }
-        .favorited { color: #f59e0b !important; text-shadow: 0 0 10px rgba(245, 158, 11, 0.5); }
+        .glass { background: var(--card); backdrop-filter: blur(12px); border: 1px solid var(--border); }
         
-        /* 讓表格在淺色模式下也清晰 */
-        .light-mode .text-white { color: #0f172a !important; }
-        .light-mode .text-slate-500 { color: #64748b !important; }
-        .light-mode .bg-slate-900 { background: #ffffff !important; }
+        /* 凍結首列與滾動優化 */
+        .table-container { overflow-x: auto; max-height: calc(100vh - 180px); overflow-y: auto; }
+        thead th { position: sticky; top: 0; z-index: 10; background: var(--bg); border-bottom: 2px solid var(--accent); }
+        
+        .favorited { color: #f59e0b !important; }
+        
+        /* 緊湊間距優化 */
+        td, th { padding-left: 0.5rem !important; padding-right: 0.5rem !important; white-space: nowrap; }
+        @media (max-width: 640px) {
+            .compact-text { font-size: 0.75rem; }
+            td { padding-top: 0.75rem !important; padding-bottom: 0.75rem !important; }
+        }
     </style>
 </head>
-<body class="min-h-screen pb-20">
+<body class="min-h-screen">
 
-    <nav class="sticky top-0 z-50 glass px-6 py-4 shadow-xl">
-        <div class="max-w-6xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
-            <div class="flex items-center gap-3">
-                <div class="bg-blue-600 p-2 rounded-xl shadow-lg shadow-blue-500/30">
-                    <i class="fas fa-bolt text-white"></i>
+    <nav class="sticky top-0 z-50 glass px-4 py-3 shadow-xl">
+        <div class="max-w-6xl mx-auto flex justify-between items-center">
+            <div class="flex items-center gap-2">
+                <div class="bg-blue-600 p-1.5 rounded-lg shadow-blue-500/30">
+                    <i class="fas fa-bolt text-white text-sm"></i>
                 </div>
-                <div>
-                    <h1 class="text-xl font-black italic tracking-tighter">MARGIN <span class="text-blue-500">PRO</span></h1>
-                    <div id="update-tag" class="text-[10px] opacity-50 mono uppercase tracking-widest">v2.6.0 Live</div>
-                </div>
+                <h1 class="text-base font-black italic tracking-tighter">MARGIN <span class="text-blue-500">PRO</span></h1>
             </div>
             
-            <div class="flex items-center gap-4">
-                <div class="hidden sm:flex gap-3 text-xs mono">
-                    <span class="opacity-70">USD: <b id="r-u" class="text-emerald-500">--</b></span>
-                    <span class="opacity-70">JPY: <b id="r-j" class="text-blue-500">--</b></span>
+            <div class="flex items-center gap-2">
+                <div class="hidden sm:flex gap-2 text-[10px] mono opacity-70">
+                    <span>U: <b id="r-u">--</b></span>
+                    <span>J: <b id="r-j">--</b></span>
                 </div>
-                <button onclick="toggleTheme()" class="w-10 h-10 rounded-full border border-white/10 flex items-center justify-center hover:bg-white/10 transition-all">
-                    <i id="theme-icon" class="fas fa-lightbulb text-yellow-400"></i>
+                <button onclick="toggleTheme()" class="w-8 h-8 rounded-full border border-white/10 flex items-center justify-center">
+                    <i id="theme-icon" class="fas fa-lightbulb text-yellow-400 text-xs"></i>
                 </button>
-                <button onclick="fetchData()" class="bg-blue-600 hover:bg-blue-500 px-6 py-2 rounded-xl font-bold text-sm transition-all shadow-lg shadow-blue-600/20 active:scale-95">
-                    <i id="sync-icon" class="fas fa-sync-alt mr-1"></i> 同步
+                <button onclick="fetchData()" class="bg-blue-600 hover:bg-blue-500 px-4 py-1.5 rounded-lg font-bold text-xs text-white">
+                    <i id="sync-icon" class="fas fa-sync-alt"></i>
                 </button>
             </div>
         </div>
     </nav>
 
-    <main class="max-w-6xl mx-auto px-6 mt-8">
-        <div class="mb-8">
+    <main class="max-w-6xl mx-auto px-2 mt-4">
+        <div class="mb-4">
             <input type="text" id="search" placeholder="搜尋商品名稱或代碼..." 
-                class="w-full bg-slate-900 border border-white/10 rounded-2xl px-6 py-4 focus:ring-2 focus:ring-blue-500 outline-none transition-all shadow-inner">
+                class="w-full bg-slate-900/50 border border-white/10 rounded-xl px-4 py-2.5 text-sm focus:ring-1 focus:ring-blue-500 outline-none">
         </div>
 
-        <div class="glass rounded-[2rem] overflow-hidden shadow-2xl">
-            <div class="overflow-x-auto">
+        <div class="glass rounded-2xl overflow-hidden shadow-2xl">
+            <div class="table-container">
                 <table class="w-full text-left">
-                    <thead class="bg-white/5 text-[10px] uppercase tracking-widest opacity-50">
+                    <thead class="text-sm font-bold uppercase tracking-wide">
                         <tr>
-                            <th class="px-8 py-5 text-center">追蹤</th>
-                            <th class="px-8 py-5">商品資訊</th>
-                            <th class="px-8 py-5">幣別</th>
-                            <th class="px-8 py-5 text-right">大點價值</th>
-                            <th class="px-8 py-5 text-right">原始保證金</th>
-                            <th class="px-8 py-5 text-right bg-blue-500/10 text-blue-500">台幣估計</th>
+                            <th class="py-4 text-center w-10">★</th>
+                            <th class="py-4">商品 (代碼)</th>
+                            <th class="py-4">幣別</th>
+                            <th class="py-4 text-right">大點</th>
+                            <th class="py-4 text-right">原始</th>
+                            <th class="py-4 text-right bg-blue-500/10">台幣換算</th>
                         </tr>
                     </thead>
-                    <tbody id="list" class="divide-y divide-white/5">
-                        <tr><td colspan="6" class="p-32 text-center opacity-50 italic">請按同步獲取雲端資料</td></tr>
+                    <tbody id="list" class="divide-y divide-white/5 text-sm">
+                        <tr><td colspan="6" class="p-20 text-center opacity-50">載入中...</td></tr>
                     </tbody>
                 </table>
             </div>
@@ -92,7 +92,6 @@
             theme: localStorage.getItem('theme') || 'dark'
         };
 
-        // 初始化主題
         if (state.theme === 'light') document.body.classList.add('light-mode');
 
         function toggleTheme() {
@@ -113,7 +112,6 @@
                 state.rates = data.rates;
                 document.getElementById('r-u').innerText = data.rates.USD;
                 document.getElementById('r-j').innerText = data.rates.JPY;
-                document.getElementById('update-tag').innerText = "Last Sync: " + data.lastUpdate;
                 render();
             } catch (e) { console.error(e); }
             finally { icon.classList.remove('fa-spin'); }
@@ -145,21 +143,21 @@
                 const twd = Math.round(item.margin * rate);
                 return `
                     <tr class="hover:bg-blue-500/5 transition-all">
-                        <td class="px-8 py-5 text-center">
-                            <button onclick="toggleFav('${item.id}')" class="hover:scale-125 transition-transform">
-                                <i class="fas fa-star ${isFav ? 'favorited' : 'opacity-20'}"></i>
+                        <td class="py-3 text-center">
+                            <button onclick="toggleFav('${item.id}')" class="text-xs">
+                                <i class="fas fa-star ${isFav ? 'favorited' : 'opacity-10'}"></i>
                             </button>
                         </td>
-                        <td class="px-8 py-5">
-                            <div class="font-bold text-white">${item.name}</div>
-                            <div class="text-[10px] mono opacity-50">${item.id}</div>
+                        <td class="py-3">
+                            <div class="font-bold text-sm leading-tight">${item.name}</div>
+                            <div class="text-[10px] mono opacity-40">${item.id}</div>
                         </td>
-                        <td class="px-8 py-5 text-xs mono opacity-60">${item.cur}</td>
-                        <td class="px-8 py-5 text-right text-xs opacity-60 italic">${item.pointVal}</td>
-                        <td class="px-8 py-5 text-right mono font-bold">${item.margin.toLocaleString()}</td>
-                        <td class="px-8 py-5 text-right bg-blue-500/5">
-                            <div class="text-lg font-black text-blue-500 tracking-tighter">
-                                <span class="text-[10px] mr-1 opacity-50">NT$</span>${twd.toLocaleString()}
+                        <td class="py-3 text-[10px] mono opacity-60">${item.cur}</td>
+                        <td class="py-3 text-right text-[10px] opacity-60 mono">${item.pointVal}</td>
+                        <td class="py-3 text-right text-xs mono font-medium">${item.margin.toLocaleString()}</td>
+                        <td class="py-3 text-right bg-blue-500/5">
+                            <div class="text-sm font-black text-blue-500 tracking-tighter">
+                                ${twd.toLocaleString()}
                             </div>
                         </td>
                     </tr>
@@ -168,7 +166,6 @@
         }
 
         document.getElementById('search').addEventListener('input', render);
-        // 自動載入
         fetchData();
     </script>
 </body>
