@@ -3,80 +3,92 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Margin Super Compact v2.6.2</title>
+    <title>Margin Ultra v2.6.3</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@700;800&family=Noto+Sans+TC:wght@500;700;900&display=swap');
         
-        :root { --bg: #020617; --card: #1e293b; --text: #f8fafc; --border: #334155; --accent: #3b82f6; --price: #60a5fa; }
-        .light-mode { --bg: #ffffff; --card: #f8fafc; --text: #0f172a; --border: #cbd5e1; --accent: #2563eb; --price: #1d4ed8; }
+        :root { --bg: #020617; --card: #1e293b; --text: #f8fafc; --border: #334155; --accent: #2563eb; --price: #60a5fa; }
+        .light-mode { --bg: #ffffff; --card: #f8fafc; --text: #0f172a; --border: #cbd5e1; --accent: #3b82f6; --price: #2563eb; }
 
-        body { font-family: 'Noto Sans TC', sans-serif; background-color: var(--bg); color: var(--text); line-height: 1.2; }
+        body { font-family: 'Noto Sans TC', sans-serif; background-color: var(--bg); color: var(--text); line-height: 1.1; overflow: hidden; }
         .mono { font-family: 'JetBrains Mono', monospace; }
         
-        /* 極致緊湊：移除所有外距 */
-        .table-container { overflow-x: auto; height: calc(100vh - 140px); overflow-y: auto; }
-        
-        /* 凍結首列與強化字體 */
+        /* 滾動容器與凍結首列 */
+        .table-container { overflow-x: auto; height: calc(100vh - 120px); overflow-y: auto; -webkit-overflow-scrolling: touch; }
         thead th { 
-            position: sticky; top: 0; z-index: 20; 
+            position: sticky; top: -1px; z-index: 30; 
             background: var(--accent); color: white; 
-            font-size: 1rem; padding: 10px 4px !important;
+            font-size: 1.1rem; padding: 12px 6px !important;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
         }
         
-        /* 欄位間距最小化 */
-        td { padding: 8px 4px !important; border-bottom: 1px solid var(--border); font-size: 1.05rem; }
-        .fav-btn { width: 30px; text-align: center; }
-        .favorited { color: #fbbf24 !important; }
+        /* 極致緊湊欄位 */
+        td { padding: 10px 6px !important; border-bottom: 1px solid var(--border); }
+        .favorited { color: #fbbf24 !important; filter: drop-shadow(0 0 5px rgba(251,191,36,0.4)); }
 
-        /* 隱藏捲軸但保留功能 */
-        .table-container::-webkit-scrollbar { width: 0; height: 0; }
+        /* 浮動同步按鈕 (防誤觸) */
+        .fab {
+            position: fixed; bottom: 25px; right: 25px;
+            width: 65px; height: 65px; border-radius: 50%;
+            background: #2563eb; color: white;
+            box-shadow: 0 10px 25px rgba(37, 99, 235, 0.5);
+            display: flex; items-center: center; justify-content: center;
+            z-index: 50; transition: all 0.2s;
+        }
+        .fab:active { transform: scale(0.85); background: #1d4ed8; }
+
+        .theme-btn { width: 48px; height: 48px; border-radius: 12px; border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; font-size: 1.25rem; }
     </style>
 </head>
-<body class="overflow-hidden">
+<body>
 
-    <nav class="bg-slate-900 text-white px-3 py-2 border-b border-blue-500/50">
-        <div class="flex justify-between items-center mb-1">
-            <h1 class="font-black italic text-sm tracking-tighter">MARGIN <span class="text-blue-400">PRO</span></h1>
-            <div class="flex items-center gap-3">
-                <button onclick="toggleTheme()" class="text-yellow-400"><i id="theme-icon" class="fas fa-lightbulb"></i></button>
-                <button onclick="fetchData()" class="text-white"><i id="sync-icon" class="fas fa-sync-alt"></i></button>
-                <span id="ver" class="text-[9px] opacity-50 mono">V2.6.2</span>
+    <nav class="bg-slate-900 text-white px-4 py-3 border-b-2 border-blue-600">
+        <div class="flex justify-between items-center mb-2">
+            <h1 class="font-black italic text-lg tracking-tighter">MARGIN <span class="text-blue-400">PRO</span></h1>
+            <div class="flex items-center gap-6">
+                <div class="text-right">
+                    <div class="text-[10px] opacity-50 mono uppercase">Live Rate</div>
+                    <div class="text-xs mono font-bold">
+                        U: <span id="r-u" class="text-emerald-400">--</span> | 
+                        J: <span id="r-j" class="text-blue-400">--</span>
+                    </div>
+                </div>
+                <button onclick="toggleTheme()" class="theme-btn text-yellow-400">
+                    <i id="theme-icon" class="fas fa-lightbulb"></i>
+                </button>
             </div>
-        </div>
-        <div class="flex justify-between items-center bg-black/30 rounded px-2 py-1">
-            <div class="text-xs mono">
-                USD: <b id="r-u" class="text-emerald-400">--</b> | 
-                JPY: <b id="r-j" class="text-blue-400">--</b>
-            </div>
-            <div id="update-tag" class="text-[9px] opacity-60 mono uppercase tracking-tighter text-right">Waiting...</div>
         </div>
     </nav>
 
-    <main class="px-1">
-        <div class="my-1">
-            <input type="text" id="search" placeholder="快速搜尋..." 
-                class="w-full bg-slate-800 border border-slate-700 rounded px-3 py-2 text-base focus:ring-1 focus:ring-blue-500 outline-none text-white">
+    <main class="px-1 mt-1">
+        <div class="px-1 mb-2">
+            <input type="text" id="search" placeholder="快速搜尋商品..." 
+                class="w-full bg-slate-800/80 border-2 border-slate-700 rounded-xl px-4 py-3 text-lg focus:border-blue-500 outline-none text-white shadow-inner">
         </div>
 
-        <div class="table-container shadow-2xl">
+        <div class="table-container shadow-2xl rounded-t-xl">
             <table class="w-full text-left border-collapse">
                 <thead>
                     <tr>
-                        <th class="fav-btn">★</th>
-                        <th style="width: 40%">商品(代碼)</th>
+                        <th class="w-10 text-center">★</th>
+                        <th style="width: 45%">商品資訊</th>
                         <th class="text-right">幣別</th>
                         <th class="text-right">原始</th>
-                        <th class="text-right" style="background: rgba(0,0,0,0.2)">台幣估計</th>
+                        <th class="text-right" style="background: rgba(0,0,0,0.1)">台幣估計</th>
                     </tr>
                 </thead>
                 <tbody id="list">
-                    <tr><td colspan="5" class="p-10 text-center opacity-50">載入中...</td></tr>
+                    <tr><td colspan="5" class="p-20 text-center opacity-50">載入中...</td></tr>
                 </tbody>
             </table>
         </div>
     </main>
+
+    <button onclick="fetchData()" class="fab" title="同步資料">
+        <i id="sync-icon" class="fas fa-sync-alt text-2xl"></i>
+    </button>
 
     <script>
         const GAS_URL = "https://script.google.com/macros/s/AKfycbznaiPus_QbMeKr-iuLSqcDvcxNuvuhB6RZrgK9VSeNh-IBskYRpCvaiugD24qXONM0/exec";
@@ -106,10 +118,8 @@
                 state.margins = data.margins;
                 state.rates = data.rates;
                 
-                // 強制更新匯率顯示
                 document.getElementById('r-u').innerText = data.rates.USD || "--";
                 document.getElementById('r-j').innerText = data.rates.JPY || "--";
-                document.getElementById('update-tag').innerText = data.lastUpdate.split(' ')[1]; // 只顯示時間縮短長度
                 
                 render();
             } catch (e) { console.error(e); }
@@ -142,18 +152,21 @@
                 const twd = Math.round(item.margin * rate);
                 return `
                     <tr class="hover:bg-blue-500/10">
-                        <td class="fav-btn">
-                            <button onclick="toggleFav('${item.id}')">
+                        <td class="text-center">
+                            <button onclick="toggleFav('${item.id}')" class="p-2">
                                 <i class="fas fa-star ${isFav ? 'favorited' : 'opacity-10'}"></i>
                             </button>
                         </td>
                         <td>
-                            <div class="font-bold text-[1.1rem] leading-none text-white">${item.name}</div>
-                            <div class="text-[10px] mono opacity-50">${item.id} | ${item.pointVal}</div>
+                            <div class="font-bold text-[1.15rem] leading-none text-white">${item.name}</div>
+                            <div class="text-[11px] mono mt-1">
+                                <span class="bg-blue-500/20 text-blue-400 px-1 rounded">${item.id}</span>
+                                <span class="text-slate-500 ml-1">大點: ${item.pointVal}</span>
+                            </div>
                         </td>
                         <td class="text-right text-[11px] mono opacity-60">${item.cur}</td>
                         <td class="text-right text-base mono font-bold">${item.margin.toLocaleString()}</td>
-                        <td class="text-right font-black text-[1.2rem]" style="color: var(--price)">
+                        <td class="text-right font-black text-[1.3rem]" style="color: var(--price)">
                             ${twd.toLocaleString()}
                         </td>
                     </tr>
