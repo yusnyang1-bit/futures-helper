@@ -2,84 +2,72 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <title>Margin v2.0.0</title>
+    <title>Margin Pro v2.2.0</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
-<body class="bg-[#0f172a] text-slate-300 min-h-screen">
+<body class="bg-[#0b0f1a] text-slate-300">
 
-    <nav class="p-6 border-b border-slate-800 flex justify-between items-center bg-[#0f172a]/80 backdrop-blur sticky top-0 z-50">
+    <nav class="p-6 border-b border-white/5 flex justify-between items-center bg-[#0b0f1a]/80 backdrop-blur sticky top-0 z-50">
         <div class="flex items-center gap-3">
-            <div class="p-2 bg-blue-600 rounded-lg shadow-lg shadow-blue-500/20"><i class="fas fa-microchip text-white"></i></div>
-            <h1 class="text-xl font-black italic tracking-tighter text-white">SYSTEM <span class="text-blue-500">v2.0.0</span></h1>
+            <div class="p-2 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg"><i class="fas fa-database text-white"></i></div>
+            <h1 class="text-xl font-bold tracking-tighter text-white">MARGIN <span class="text-blue-500 underline">PRO</span></h1>
         </div>
-        <div class="flex gap-4 font-mono text-xs text-emerald-400 bg-slate-800/50 px-4 py-2 rounded-full border border-slate-700">
+        <div class="flex gap-4 font-mono text-xs text-emerald-400 bg-white/5 px-4 py-2 rounded-full">
             USD: <span id="r-usd">--</span> | JPY: <span id="r-jpy">--</span>
         </div>
     </nav>
 
     <main class="max-w-4xl mx-auto p-6">
-        <div class="flex gap-4 mb-8">
-            <input type="text" id="search" placeholder="搜尋代碼 (如: NQ, MNQ)..." 
-                class="flex-grow bg-slate-800/50 border border-slate-700 rounded-2xl px-6 py-4 focus:ring-2 focus:ring-blue-500 outline-none">
-            <button onclick="sync()" class="bg-blue-600 hover:bg-blue-500 px-10 rounded-2xl font-bold flex items-center gap-2 transition-all">
-                <i id="s-icon" class="fas fa-sync-alt"></i> 同步
-            </button>
+        <div class="mb-8">
+            <input type="text" id="search" placeholder="輸入搜尋商品名稱或代碼..." 
+                class="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 focus:ring-2 focus:ring-blue-500 outline-none text-white">
         </div>
 
-        <div class="bg-slate-800/20 rounded-[2rem] border border-slate-800 overflow-hidden">
-            <table class="w-full text-left">
-                <thead class="bg-slate-800/50 text-[10px] uppercase tracking-[0.2em] text-slate-500">
-                    <tr>
-                        <th class="p-6">商品/代碼</th>
-                        <th class="p-6 text-right font-bold text-blue-400 bg-blue-400/5">台幣估算</th>
-                    </tr>
-                </thead>
-                <tbody id="list" class="divide-y divide-slate-800">
-                    <tr><td colspan="2" class="p-20 text-center text-slate-600 italic">系統準備就緒，請同步資料</td></tr>
-                </tbody>
-            </table>
-        </div>
-        <p id="msg" class="mt-6 text-center text-[10px] text-slate-500 font-mono"></p>
+        <div id="list" class="grid gap-4">
+            </div>
     </main>
 
     <script>
-        const GAS_URL = "https://script.google.com/macros/s/AKfycbwAN2ErBR8d86X5e_tyBZCZ1pFHp8fTydoq_Et_vxdjftHCXComZ3sXdrQAHchioPra2Q/exec";
+        const GAS_URL = "https://script.google.com/macros/s/AKfycbzTCazcwF5h-hiP6yCn6FpM67j3mo8Jtek96z4lq01PrAz-np6cZo2uNapzWeXN2uFKmQ/exec";
 
-        async function sync() {
-            const icon = document.getElementById('s-icon');
-            icon.classList.add('fa-spin');
+        async function init() {
             try {
                 const res = await fetch(GAS_URL);
                 const data = await res.json();
                 document.getElementById('r-usd').innerText = data.rates.USD;
                 document.getElementById('r-jpy').innerText = data.rates.JPY;
-                document.getElementById('msg').innerText = "LAST UPDATE: " + data.lastUpdate;
                 
-                const q = document.getElementById('search').value.toLowerCase();
-                const container = document.getElementById('list');
-                const filtered = data.margins.filter(i => (i.name + i.id).toLowerCase().includes(q));
-
-                container.innerHTML = filtered.map(item => {
-                    const twd = Math.round(item.margin * (data.rates[item.cur] || 1));
-                    return `
-                        <tr class="hover:bg-slate-800/40 transition-all">
-                            <td class="p-6">
-                                <div class="font-bold text-white">${item.name}</div>
-                                <div class="text-[10px] text-slate-500 font-mono">${item.id} · ${item.cur} ${item.margin.toLocaleString()}</div>
-                            </td>
-                            <td class="p-6 text-right text-2xl font-black text-blue-400 bg-blue-400/5">
-                                NT$ ${twd.toLocaleString()}
-                            </td>
-                        </tr>
-                    `;
-                }).join('');
-            } catch (e) {
-                alert("連線失敗！請確認 GAS 是否設為『所有人』。");
-            } finally {
-                icon.classList.remove('fa-spin');
-            }
+                window.allData = data;
+                render();
+            } catch (e) { console.error(e); }
         }
+
+        function render() {
+            const q = document.getElementById('search').value.toLowerCase();
+            const container = document.getElementById('list');
+            const filtered = window.allData.margins.filter(i => (i.name + i.id).toLowerCase().includes(q));
+
+            container.innerHTML = filtered.map(item => {
+                const twd = Math.round(item.margin * (window.allData.rates[item.cur] || 1));
+                return `
+                    <div class="bg-white/5 border border-white/10 p-6 rounded-3xl flex justify-between items-center hover:bg-white/10 transition-all">
+                        <div>
+                            <div class="text-xs text-blue-400 font-bold mb-1">${item.id}</div>
+                            <div class="text-lg font-bold text-white">${item.name}</div>
+                            <div class="text-xs text-slate-500 mt-1">原始保證金: ${item.cur} ${item.margin.toLocaleString()}</div>
+                        </div>
+                        <div class="text-right">
+                            <div class="text-[10px] text-slate-500 uppercase tracking-widest mb-1">台幣換算估計</div>
+                            <div class="text-2xl font-black text-white">NT$ ${twd.toLocaleString()}</div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        document.getElementById('search').addEventListener('input', render);
+        init();
     </script>
 </body>
 </html>
