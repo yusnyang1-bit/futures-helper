@@ -3,89 +3,165 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>國外期貨保證金換算器</title>
+    <title>Roberts 全球期貨保證金監測站</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
-<body class="bg-gray-100 p-5">
-    <div class="max-w-4xl mx-auto bg-white rounded-xl shadow-md overflow-hidden p-6">
-        <h1 class="text-2xl font-bold text-gray-800 mb-4">國外期貨保證金即時換算 (MVP)</h1>
+<body class="bg-slate-50 min-h-screen pb-20">
+
+    <nav class="bg-slate-800 text-white p-4 sticky top-0 z-50 shadow-lg">
+        <div class="max-w-6xl mx-auto flex justify-between items-center">
+            <h1 class="text-xl font-bold flex items-center">
+                <i class="fas fa-chart-line mr-2 text-blue-400"></i> 期貨保證金即時換算
+            </h1>
+            <div class="text-xs text-slate-400">
+                匯率參考：台銀即時掛牌 | 數據來源：元大期貨
+            </div>
+        </div>
+    </nav>
+
+    <main class="max-w-6xl mx-auto p-4 mt-4">
         
-        <div id="rate-status" class="bg-blue-50 p-3 rounded-lg mb-6 text-sm text-blue-700">
-            正在獲取台銀即時匯率...
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            <div class="relative">
+                <i class="fas fa-search absolute left-3 top-3 text-gray-400"></i>
+                <input type="text" id="searchInput" placeholder="搜尋商品名稱 (如: 那斯達克, 黃金...)" 
+                    class="w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
+            </div>
+            
+            <div class="bg-white p-2 rounded-lg border flex items-center justify-between px-4 shadow-sm">
+                <span class="text-sm font-medium text-gray-500">USD/TWD: <b id="usdRate">--</b></span>
+                <button onclick="refreshData()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-1 rounded text-sm transition shadow">
+                    <i class="fas fa-sync-alt mr-1"></i> 點擊更新數據
+                </button>
+            </div>
+            
+            <div class="flex gap-2">
+                <button onclick="filterType('all')" class="flex-1 bg-slate-200 hover:bg-slate-300 py-2 rounded-lg text-sm font-bold">全部</button>
+                <button onclick="filterType('fav')" class="flex-1 bg-yellow-100 hover:bg-yellow-200 text-yellow-700 py-2 rounded-lg text-sm font-bold border border-yellow-200">
+                    <i class="fas fa-star mr-1"></i> 已追蹤
+                </button>
+            </div>
         </div>
 
-        <div class="overflow-x-auto">
-            <table class="w-full text-left border-collapse">
-                <thead>
-                    <tr class="bg-gray-200">
-                        <th class="p-3 border">商品名稱</th>
-                        <th class="p-3 border">結算幣別</th>
-                        <th class="p-3 border">每一大點價值</th>
-                        <th class="p-3 border">原始保證金 (原幣)</th>
-                        <th class="p-3 border bg-yellow-100 text-red-600">換算台幣 (預估)</th>
+        <div class="bg-white rounded-xl shadow-sm border overflow-hidden">
+            <table class="w-full text-left">
+                <thead class="bg-slate-100 border-b">
+                    <tr>
+                        <th class="p-4 text-sm font-semibold text-slate-600">追蹤</th>
+                        <th class="p-4 text-sm font-semibold text-slate-600">交易所/商品</th>
+                        <th class="p-4 text-sm font-semibold text-slate-600 text-right">原幣保證金</th>
+                        <th class="p-4 text-sm font-semibold text-slate-600 text-right bg-blue-50">台幣換算 (估)</th>
                     </tr>
                 </thead>
-                <tbody id="margin-table-body">
+                <tbody id="tableBody" class="divide-y divide-gray-100">
                     </tbody>
             </table>
         </div>
-    </div>
+    </main>
 
     <script>
-        /**
-         * 邏輯層 (Logic Layer)
-         * 負責處理匯率與保證金計算
-         */
-        const AppLogic = {
-            // 模擬從台銀 API 抓取的匯率 (實務上需透過 Backend Proxy)
-            rates: {
-                "USD": 32.50,
-                "JPY": 0.21,
-                "HKD": 4.15,
-                "EUR": 35.20
-            },
+        // 1. 核心數據結構 (未來可透過 API 替換)
+        let rawData = [
+            { id: 1, exchange: "CME", name: "微型那斯達克 (MNQ)", currency: "USD", margin: 1848, type: "指數" },
+            { id: 2, exchange: "CME", name: "微型標普 (MES)", currency: "USD", margin: 1232, type: "指數" },
+            { id: 3, exchange: "CME", name: "黃金 (GC)", currency: "USD", margin: 9460, type: "金屬" },
+            { id: 4, exchange: "CME", name: "微型黃金 (MGC)", currency: "USD", margin: 946, type: "金屬" },
+            { id: 5, exchange: "CBOT", name: "小道瓊 (YM)", currency: "USD", margin: 8800, type: "指數" },
+            { id: 6, exchange: "HKEX", name: "恆生指數 (HSI)", currency: "HKD", margin: 84540, type: "指數" },
+            { id: 7, exchange: "OSE", name: "日經225 (NK225)", currency: "JPY", margin: 1650000, type: "指數" },
+            { id: 8, exchange: "SGX", name: "富時中國A50 (CN)", currency: "USD", margin: 1100, type: "指數" },
+            // ... 可在此加入更多商品
+        ];
 
-            // 模擬從元大抓取的保證金數據 (Mock Data)
-            marginData: [
-                { name: "微型那斯達克", currency: "USD", pointValue: 2, margin: 1848 },
-                { name: "小道瓊", currency: "USD", pointValue: 5, margin: 8800 },
-                { name: "日經225", currency: "JPY", pointValue: 500, margin: 1650000 }
-            ],
+        let rates = { "USD": 32.45, "HKD": 4.14, "JPY": 0.215 };
+        let favorites = JSON.parse(localStorage.getItem('myFavorites')) || [];
+        let currentFilter = 'all';
 
-            formatCurrency(val) {
-                return new Intl.NumberFormat('zh-TW', { style: 'currency', currency: 'TWD' }).format(val);
-            },
+        // 2. 初始化渲染
+        function init() {
+            renderTable();
+            document.getElementById('usdRate').innerText = rates.USD;
+        }
 
-            calculateTWD(margin, currency) {
-                const rate = this.rates[currency] || 1;
-                return margin * rate;
-            }
-        };
-
-        /**
-         * 介面層 (UI Layer)
-         * 負責渲染畫面
-         */
+        // 3. 渲染邏輯
         function renderTable() {
-            const tbody = document.getElementById('margin-table-body');
-            tbody.innerHTML = AppLogic.marginData.map(item => {
-                const twdValue = AppLogic.calculateTWD(item.margin, item.currency);
+            const tbody = document.getElementById('tableBody');
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            
+            let filtered = rawData.filter(item => {
+                const matchesSearch = item.name.toLowerCase().includes(searchTerm) || item.exchange.toLowerCase().includes(searchTerm);
+                if (currentFilter === 'fav') {
+                    return matchesSearch && favorites.includes(item.id);
+                }
+                return matchesSearch;
+            });
+
+            tbody.innerHTML = filtered.map(item => {
+                const isFav = favorites.includes(item.id);
+                const twdValue = (item.margin * (rates[item.currency] || 1)).toLocaleString(undefined, {maximumFractionDigits: 0});
+                
                 return `
-                    <tr class="hover:bg-gray-50">
-                        <td class="p-3 border">${item.name}</td>
-                        <td class="p-3 border">${item.currency}</td>
-                        <td class="p-3 border">${item.pointValue}</td>
-                        <td class="p-3 border">${item.margin.toLocaleString()}</td>
-                        <td class="p-3 border font-bold text-red-500">${AppLogic.formatCurrency(twdValue)}</td>
+                    <tr class="hover:bg-slate-50 transition">
+                        <td class="p-4">
+                            <button onclick="toggleFav(${item.id})" class="text-xl ${isFav ? 'text-yellow-400' : 'text-gray-300 hover:text-yellow-200'}">
+                                <i class="fas fa-star"></i>
+                            </button>
+                        </td>
+                        <td class="p-4">
+                            <div class="text-xs text-gray-400">${item.exchange}</div>
+                            <div class="font-bold text-slate-700">${item.name}</div>
+                        </td>
+                        <td class="p-4 text-right font-mono text-slate-600">
+                            ${item.currency} ${item.margin.toLocaleString()}
+                        </td>
+                        <td class="p-4 text-right font-bold text-blue-600 bg-blue-50/50">
+                            NT$ ${twdValue}
+                        </td>
                     </tr>
                 `;
             }).join('');
-
-            document.getElementById('rate-status').innerText = `目前匯率參考：USD ${AppLogic.rates.USD} | JPY ${AppLogic.rates.JPY} (台銀掛牌)`;
         }
 
-        // 初始化
-        window.onload = renderTable;
+        // 4. 功能函數
+        function toggleFav(id) {
+            if (favorites.includes(id)) {
+                favorites = favorites.filter(favId => favId !== id);
+            } else {
+                favorites.push(id);
+            }
+            localStorage.setItem('myFavorites', JSON.stringify(favorites));
+            renderTable();
+        }
+
+        function filterType(type) {
+            currentFilter = type;
+            renderTable();
+        }
+
+        // 模擬更新按鈕功能
+        async function refreshData() {
+            const btn = event.currentTarget;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> 讀取中...';
+            btn.disabled = true;
+
+            // 這裡未來會放入 fetch('your_gas_api_url')
+            setTimeout(() => {
+                // 模擬匯率變動
+                rates.USD = (32.4 + Math.random() * 0.2).toFixed(2);
+                document.getElementById('usdRate').innerText = rates.USD;
+                
+                alert('數據已更新至最新狀態！');
+                btn.innerHTML = '<i class="fas fa-sync-alt mr-1"></i> 點擊更新數據';
+                btn.disabled = false;
+                renderTable();
+            }, 1000);
+        }
+
+        // 監聽搜尋輸入
+        document.getElementById('searchInput').addEventListener('input', renderTable);
+
+        window.onload = init;
     </script>
 </body>
 </html>
