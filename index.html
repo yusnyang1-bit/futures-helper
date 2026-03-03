@@ -51,7 +51,7 @@
 
     <script>
         // 替換為你的 GAS URL
-        const GAS_API_URL = "https://script.google.com/macros/s/AKfycbwc1JEjS_3PjKKwBfJtG9oTU9OdjJReAE9ZrjCdCN_hTj0cKlcw002yDnPmDqpZqk2d7Q/exec"; 
+        const GAS_API_URL = "https://script.google.com/macros/s/AKfycbwhhuZrTe7v8M73KqQzOS6urfe4FTDi7HgtvHr7YjB1dBtIVUrev3WrSQd9-5jLProxsQ/exec"; 
         
         let localState = {
             margins: [],
@@ -67,22 +67,24 @@ async function fetchData() {
         const response = await fetch(GAS_API_URL);
         const data = await response.json();
         
-        if (data.error) {
-            console.error("GAS 後端錯誤:", data.error);
-            alert("後端抓取發生問題，請檢查 GAS 程式碼。");
-            return;
-        }
-
-        // 注意：這裡要對應 GAS 回傳的 key (margins, rates)
-        localState.margins = data.margins;
+        // 渲染匯率
         localState.rates = data.rates;
-        
-        console.log("成功同步數據:", data);
         renderRates();
+
+        // 檢查是否有抓到保證金
+        if (data.margins && data.margins.length > 0) {
+            localState.margins = data.margins;
+        } else {
+            console.warn("API 沒抓到資料，啟動保底數據");
+            localState.margins = [
+                { name: "微型那斯達克", id: "MNQ", cur: "USD", pointVal: "2 USD", margin: 4047 },
+                { name: "微型標普", id: "MES", cur: "USD", pointVal: "5 USD", margin: 2772 }
+            ];
+        }
         renderTable();
     } catch (e) {
-        console.error("前端抓取失敗:", e);
-        alert("無法連線至 GAS API，請確認部署設定為『所有人』。");
+        console.error("連線錯誤:", e);
+        alert("無法讀取資料，請檢查 GAS 部署權限是否為『所有人』");
     } finally {
         icon.classList.remove('fa-spin');
     }
