@@ -3,106 +3,117 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Margin Conversion v1.5 - Auto Sync</title>
+    <title>Margin Conversion v1.5</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
 <body class="bg-slate-50 min-h-screen">
 
-    <nav class="bg-indigo-900 text-white p-4 sticky top-0 z-50 shadow-xl">
+    <nav class="bg-slate-900 text-white p-4 sticky top-0 z-50 shadow-xl">
         <div class="max-w-6xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
-            <div class="flex items-center">
-                <i class="fas fa-robot mr-3 text-cyan-400 text-2xl"></i>
-                <div>
-                    <h1 class="text-xl font-black tracking-tighter uppercase">Margin Conversion</h1>
-                    <p class="text-[10px] text-indigo-300">v1.5.0 · AI Auto-Fetch Enabled</p>
-                </div>
+            <h1 class="text-xl font-black italic tracking-widest text-indigo-400">MARGIN CONVERSION</h1>
+            <div id="rate-display" class="flex gap-4 font-mono text-sm bg-slate-800 px-4 py-2 rounded-xl border border-slate-700">
+                載入中匯率...
             </div>
-            
-            <div id="rate-bar" class="flex gap-4 bg-indigo-800 px-5 py-2 rounded-2xl border border-indigo-700 font-mono text-sm">
-                </div>
         </div>
     </nav>
 
-    <main class="max-w-6xl mx-auto p-4 md:p-8">
-        <div class="flex flex-col md:flex-row gap-4 mb-8">
-            <input type="text" id="searchInput" placeholder="自動同步中，請直接搜尋商品..." 
-                class="flex-grow pl-6 pr-4 py-4 rounded-2xl shadow-sm ring-1 ring-slate-200 outline-none focus:ring-2 focus:ring-indigo-500">
-            <button onclick="syncFromYuanta()" class="bg-cyan-500 hover:bg-cyan-600 text-white px-8 py-4 rounded-2xl font-bold transition shadow-lg flex items-center justify-center">
-                <i class="fas fa-cloud-download-alt mr-2" id="sync-icon"></i> 立即同步官網數據
+    <main class="max-w-6xl mx-auto p-4 md:p-6">
+        <div class="flex flex-col md:flex-row gap-4 mb-6">
+            <div class="relative flex-grow">
+                <i class="fas fa-search absolute left-4 top-4 text-slate-400"></i>
+                <input type="text" id="searchInput" placeholder="搜尋全商品 (MNQ, NQ, 日經, 黃金)..." 
+                    class="w-full pl-12 pr-4 py-3.5 rounded-2xl border-0 shadow-sm ring-1 ring-slate-200 outline-none focus:ring-2 focus:ring-indigo-500">
+            </div>
+            <button onclick="fetchData()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-8 py-3 rounded-2xl font-bold transition flex items-center justify-center min-w-[140px]">
+                <i class="fas fa-sync-alt mr-2" id="sync-icon"></i> 同步數據
             </button>
         </div>
 
         <div class="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden">
-            <table class="w-full text-left">
-                <thead class="bg-slate-50 border-b border-slate-200">
-                    <tr>
-                        <th class="p-5 text-xs font-bold text-slate-400">商品</th>
-                        <th class="p-5 text-xs font-bold text-slate-400 text-right">大點價值</th>
-                        <th class="p-5 text-xs font-bold text-slate-400 text-right">原始保證金</th>
-                        <th class="p-5 text-xs font-bold text-indigo-600 text-right bg-indigo-50/50">台幣估值</th>
-                    </tr>
-                </thead>
-                <tbody id="tableBody" class="divide-y divide-slate-100">
-                    </tbody>
-            </table>
+            <div class="overflow-x-auto">
+                <table class="w-full text-left">
+                    <thead class="bg-slate-50 border-b border-slate-200 text-slate-400 text-xs uppercase">
+                        <tr>
+                            <th class="p-5">追蹤</th>
+                            <th class="p-5">交易所 / 商品名稱</th>
+                            <th class="p-5 text-right">大點價值</th>
+                            <th class="p-5 text-right">原始保證金</th>
+                            <th class="p-5 text-right bg-indigo-50 text-indigo-600">台幣估計</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableBody" class="divide-y divide-slate-100">
+                        </tbody>
+                </table>
+            </div>
         </div>
     </main>
 
     <script>
-        // 你的 GAS 部署 URL
-        const GAS_API = "YOUR_GAS_DEPLOY_URL_HERE"; 
+        // 替換為你的 GAS URL
+        const GAS_API_URL = "https://script.google.com/macros/s/AKfycbxIEQVNQAgLT5IVLp_M7sizfCFBSqMER7yEVfecd1bLc0psuDZyD0XzTb8KQwGaJGYtWQ/exec"; 
         
-        let state = {
-            apiData: [],
-            rates: { USD: 32.55, JPY: 0.216, HKD: 4.16, EUR: 35.45 }
+        let localState = {
+            margins: [],
+            rates: { "USD": 32.5, "JPY": 0.21, "HKD": 4.15 },
+            favs: JSON.parse(localStorage.getItem('mc_favs')) || []
         };
 
-        // 核心：從 GAS 抓取元大即時數據
-        async function syncFromYuanta() {
+        async function fetchData() {
             const icon = document.getElementById('sync-icon');
             icon.classList.add('fa-spin');
             
             try {
-                // 如果暫時沒 GAS，這裏先用模擬數據確保功能正確
-                const response = await fetch(GAS_API); 
-                state.apiData = await response.json();
-                render();
-                alert('已從元大官網同步最新保證金！');
+                const response = await fetch(GAS_API_URL);
+                const data = await response.json();
+                
+                localState.margins = data.margins;
+                localState.rates = data.rates;
+                
+                renderRates();
+                renderTable();
             } catch (e) {
-                console.error("同步失敗，請檢查 GAS URL", e);
-                // 這裡放入你附件的保底數據
-                state.apiData = [
-                    { name: '微型那斯達克', id: 'MNQ', cur: 'USD', pointVal: '2 USD', margin: 4047 },
-                    { name: '微型標普500', id: 'MES', cur: 'USD', pointVal: '5 USD', margin: 2772 }
-                ];
-                render();
+                alert("抓取失敗，請確認 GAS 部署是否設為『所有人』");
             } finally {
                 icon.classList.remove('fa-spin');
             }
         }
 
-        function render() {
-            const search = document.getElementById('searchInput').value.toLowerCase();
+        function renderRates() {
+            document.getElementById('rate-display').innerHTML = `
+                <span>USD: ${localState.rates.USD || '--'}</span>
+                <span class="text-slate-600">|</span>
+                <span>JPY: ${localState.rates.JPY || '--'}</span>
+                <span class="text-slate-600">|</span>
+                <span>HKD: ${localState.rates.HKD || '--'}</span>
+            `;
+        }
+
+        function renderTable() {
+            const query = document.getElementById('searchInput').value.toLowerCase();
             const tbody = document.getElementById('tableBody');
             
-            const filtered = state.apiData.filter(item => 
-                item.name.includes(search) || item.id.toLowerCase().includes(search)
+            const filtered = localState.margins.filter(item => 
+                item.name.toLowerCase().includes(query) || item.id.toLowerCase().includes(query)
             );
 
             tbody.innerHTML = filtered.map(item => {
-                const twdValue = Math.round(item.margin * (state.rates[item.cur] || 1));
+                const twdValue = Math.round(item.margin * (localState.rates[item.cur] || 1));
+                const isFav = localState.favs.includes(item.id);
                 return `
                     <tr class="hover:bg-slate-50 transition">
                         <td class="p-5">
+                            <i class="fas fa-star ${isFav ? 'text-yellow-400' : 'text-slate-100'} cursor-pointer" onclick="toggleFav('${item.id}')"></i>
+                        </td>
+                        <td class="p-5">
                             <div class="font-bold text-slate-800">${item.name}</div>
-                            <div class="text-[11px] text-slate-400 font-mono">${item.id}</div>
+                            <div class="text-[10px] text-slate-400 font-mono">${item.id}</div>
                         </td>
                         <td class="p-5 text-right font-mono text-slate-500 text-sm">${item.pointVal}</td>
                         <td class="p-5 text-right font-mono font-bold text-slate-700">
                             <span class="text-[10px] text-slate-400 mr-1">${item.cur}</span>${item.margin.toLocaleString()}
                         </td>
-                        <td class="p-5 text-right font-black text-indigo-700 bg-indigo-50/30">
+                        <td class="p-5 text-right font-black text-indigo-700 bg-indigo-50/30 text-lg">
                             NT$ ${twdValue.toLocaleString()}
                         </td>
                     </tr>
@@ -110,8 +121,18 @@
             }).join('');
         }
 
-        document.getElementById('searchInput').addEventListener('input', render);
-        window.onload = syncFromYuanta;
+        function toggleFav(id) {
+            if (localState.favs.includes(id)) {
+                localState.favs = localState.favs.filter(i => i !== id);
+            } else {
+                localState.favs.push(id);
+            }
+            localStorage.setItem('mc_favs', JSON.stringify(localState.favs));
+            renderTable();
+        }
+
+        document.getElementById('searchInput').addEventListener('input', renderTable);
+        window.onload = fetchData;
     </script>
 </body>
 </html>
