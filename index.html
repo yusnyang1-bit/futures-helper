@@ -3,72 +3,80 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Advanced Margin Terminal v2.5.0</title>
+    <title>Margin Terminal Elite v2.6.0</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Noto+Sans+TC:wght@400;700;900&display=swap');
-        body { font-family: 'Noto Sans TC', sans-serif; background-color: #020617; }
+        
+        :root {
+            --bg: #020617; --card: rgba(30, 41, 59, 0.7); --text: #f8fafc; --border: rgba(255, 255, 255, 0.1);
+        }
+        .light-mode {
+            --bg: #f1f5f9; --card: rgba(255, 255, 255, 0.8); --text: #0f172a; --border: rgba(0, 0, 0, 0.1);
+        }
+
+        body { font-family: 'Noto Sans TC', sans-serif; background-color: var(--bg); color: var(--text); transition: all 0.3s ease; }
         .mono { font-family: 'JetBrains Mono', monospace; }
-        .glass { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(16px); border: 1px solid rgba(255, 255, 255, 0.1); }
-        .favorited { color: #f59e0b !important; }
-        .card-hover:hover { border-color: #3b82f6; background: rgba(59, 130, 246, 0.05); }
+        .glass { background: var(--card); backdrop-filter: blur(16px); border: 1px solid var(--border); }
+        .favorited { color: #f59e0b !important; text-shadow: 0 0 10px rgba(245, 158, 11, 0.5); }
+        
+        /* 讓表格在淺色模式下也清晰 */
+        .light-mode .text-white { color: #0f172a !important; }
+        .light-mode .text-slate-500 { color: #64748b !important; }
+        .light-mode .bg-slate-900 { background: #ffffff !important; }
     </style>
 </head>
-<body class="text-slate-200 min-h-screen pb-20">
+<body class="min-h-screen pb-20">
 
-    <nav class="sticky top-0 z-50 glass px-6 py-4">
+    <nav class="sticky top-0 z-50 glass px-6 py-4 shadow-xl">
         <div class="max-w-6xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
             <div class="flex items-center gap-3">
-                <div class="bg-blue-600 p-2 rounded-lg shadow-lg shadow-blue-500/50">
-                    <i class="fas fa-chart-pie text-white"></i>
+                <div class="bg-blue-600 p-2 rounded-xl shadow-lg shadow-blue-500/30">
+                    <i class="fas fa-bolt text-white"></i>
                 </div>
                 <div>
-                    <h1 class="text-xl font-black italic tracking-tighter">MARGIN <span class="text-blue-500">TERMINAL</span></h1>
-                    <div id="update-tag" class="text-[10px] text-slate-500 mono uppercase tracking-widest">System Ready</div>
+                    <h1 class="text-xl font-black italic tracking-tighter">MARGIN <span class="text-blue-500">PRO</span></h1>
+                    <div id="update-tag" class="text-[10px] opacity-50 mono uppercase tracking-widest">v2.6.0 Live</div>
                 </div>
             </div>
             
-            <div class="flex gap-4">
-                <div class="bg-slate-800/50 px-4 py-2 rounded-xl border border-white/5 flex items-center gap-2">
-                    <i class="fas fa-dollar-sign text-emerald-500"></i>
-                    <span class="text-xs mono">USD <b id="r-u" class="text-emerald-400">--</b></span>
+            <div class="flex items-center gap-4">
+                <div class="hidden sm:flex gap-3 text-xs mono">
+                    <span class="opacity-70">USD: <b id="r-u" class="text-emerald-500">--</b></span>
+                    <span class="opacity-70">JPY: <b id="r-j" class="text-blue-500">--</b></span>
                 </div>
-                <div class="bg-slate-800/50 px-4 py-2 rounded-xl border border-white/5 flex items-center gap-2">
-                    <i class="fas fa-yen-sign text-blue-400"></i>
-                    <span class="text-xs mono">JPY <b id="r-j" class="text-blue-400">--</b></span>
-                </div>
+                <button onclick="toggleTheme()" class="w-10 h-10 rounded-full border border-white/10 flex items-center justify-center hover:bg-white/10 transition-all">
+                    <i id="theme-icon" class="fas fa-lightbulb text-yellow-400"></i>
+                </button>
+                <button onclick="fetchData()" class="bg-blue-600 hover:bg-blue-500 px-6 py-2 rounded-xl font-bold text-sm transition-all shadow-lg shadow-blue-600/20 active:scale-95">
+                    <i id="sync-icon" class="fas fa-sync-alt mr-1"></i> 同步
+                </button>
             </div>
         </div>
     </nav>
 
     <main class="max-w-6xl mx-auto px-6 mt-8">
-        <div class="flex flex-col md:flex-row gap-4 mb-8">
-            <div class="relative flex-grow">
-                <i class="fas fa-search absolute left-5 top-1/2 -translate-y-1/2 text-slate-500"></i>
-                <input type="text" id="search" placeholder="搜尋商品名稱、代碼 (如: NQ, ES, 原油)..." 
-                    class="w-full bg-slate-900 border border-white/10 rounded-2xl pl-14 pr-6 py-4 focus:ring-2 focus:ring-blue-500 outline-none transition-all">
-            </div>
-            <button onclick="fetchData()" class="bg-blue-600 hover:bg-blue-500 px-8 py-4 rounded-2xl font-bold transition-all flex items-center justify-center gap-2 shadow-lg shadow-blue-600/20 active:scale-95">
-                <i id="sync-icon" class="fas fa-sync-alt"></i> 同步數據
-            </button>
+        <div class="mb-8">
+            <input type="text" id="search" placeholder="搜尋商品名稱或代碼..." 
+                class="w-full bg-slate-900 border border-white/10 rounded-2xl px-6 py-4 focus:ring-2 focus:ring-blue-500 outline-none transition-all shadow-inner">
         </div>
 
         <div class="glass rounded-[2rem] overflow-hidden shadow-2xl">
             <div class="overflow-x-auto">
                 <table class="w-full text-left">
-                    <thead class="bg-white/5 text-[11px] uppercase tracking-widest text-slate-500">
+                    <thead class="bg-white/5 text-[10px] uppercase tracking-widest opacity-50">
                         <tr>
-                            <th class="px-8 py-5">追蹤</th>
-                            <th class="px-8 py-5">商品資訊 (代碼)</th>
+                            <th class="px-8 py-5 text-center">追蹤</th>
+                            <th class="px-8 py-5">商品資訊</th>
                             <th class="px-8 py-5">幣別</th>
                             <th class="px-8 py-5 text-right">大點價值</th>
                             <th class="px-8 py-5 text-right">原始保證金</th>
-                            <th class="px-8 py-5 text-right bg-blue-500/10 text-blue-400">台幣估計</th>
+                            <th class="px-8 py-5 text-right bg-blue-500/10 text-blue-500">台幣估計</th>
                         </tr>
                     </thead>
                     <tbody id="list" class="divide-y divide-white/5">
-                        <tr><td colspan="6" class="p-32 text-center text-slate-500 italic">請點擊同步按鈕載入雲端試算表...</td></tr>
+                        <tr><td colspan="6" class="p-32 text-center opacity-50 italic">請按同步獲取雲端資料</td></tr>
                     </tbody>
                 </table>
             </div>
@@ -77,7 +85,23 @@
 
     <script>
         const GAS_URL = "https://script.google.com/macros/s/AKfycbznaiPus_QbMeKr-iuLSqcDvcxNuvuhB6RZrgK9VSeNh-IBskYRpCvaiugD24qXONM0/exec";
-        let state = { margins: [], rates: {}, favorites: JSON.parse(localStorage.getItem('favs') || '[]') };
+        let state = { 
+            margins: [], 
+            rates: {}, 
+            favorites: JSON.parse(localStorage.getItem('favs') || '[]'),
+            theme: localStorage.getItem('theme') || 'dark'
+        };
+
+        // 初始化主題
+        if (state.theme === 'light') document.body.classList.add('light-mode');
+
+        function toggleTheme() {
+            document.body.classList.toggle('light-mode');
+            const isLight = document.body.classList.contains('light-mode');
+            state.theme = isLight ? 'light' : 'dark';
+            localStorage.setItem('theme', state.theme);
+            document.getElementById('theme-icon').className = isLight ? 'fas fa-moon text-slate-400' : 'fas fa-lightbulb text-yellow-400';
+        }
 
         async function fetchData() {
             const icon = document.getElementById('sync-icon');
@@ -89,9 +113,9 @@
                 state.rates = data.rates;
                 document.getElementById('r-u').innerText = data.rates.USD;
                 document.getElementById('r-j').innerText = data.rates.JPY;
-                document.getElementById('update-tag').innerText = "Last Update: " + data.lastUpdate;
+                document.getElementById('update-tag').innerText = "Last Sync: " + data.lastUpdate;
                 render();
-            } catch (e) { alert("連線錯誤，請檢查網址或權限設定。"); }
+            } catch (e) { console.error(e); }
             finally { icon.classList.remove('fa-spin'); }
         }
 
@@ -107,7 +131,6 @@
             const q = document.getElementById('search').value.toLowerCase();
             const container = document.getElementById('list');
             
-            // 排序：最愛置頂，其餘按代碼排
             const sorted = [...state.margins].sort((a, b) => {
                 const aFav = state.favorites.includes(a.id) ? 0 : 1;
                 const bFav = state.favorites.includes(b.id) ? 0 : 1;
@@ -121,21 +144,21 @@
                 const rate = state.rates[item.cur] || 1;
                 const twd = Math.round(item.margin * rate);
                 return `
-                    <tr class="card-hover transition-all group">
+                    <tr class="hover:bg-blue-500/5 transition-all">
                         <td class="px-8 py-5 text-center">
-                            <button onclick="toggleFav('${item.id}')" class="text-slate-700 hover:scale-125 transition-transform">
-                                <i class="fas fa-star ${isFav ? 'favorited' : ''}"></i>
+                            <button onclick="toggleFav('${item.id}')" class="hover:scale-125 transition-transform">
+                                <i class="fas fa-star ${isFav ? 'favorited' : 'opacity-20'}"></i>
                             </button>
                         </td>
                         <td class="px-8 py-5">
-                            <div class="font-bold text-white group-hover:text-blue-400 transition-colors">${item.name}</div>
-                            <div class="text-[10px] mono text-slate-500">${item.id}</div>
+                            <div class="font-bold text-white">${item.name}</div>
+                            <div class="text-[10px] mono opacity-50">${item.id}</div>
                         </td>
-                        <td class="px-8 py-5 text-xs mono text-slate-400">${item.cur}</td>
-                        <td class="px-8 py-5 text-right text-xs text-slate-400 italic">${item.pointVal}</td>
-                        <td class="px-8 py-5 text-right mono font-bold text-slate-300">${item.margin.toLocaleString()}</td>
-                        <td class="px-8 py-5 text-right bg-blue-500/5 transition-colors">
-                            <div class="text-lg font-black text-blue-400 tracking-tighter">
+                        <td class="px-8 py-5 text-xs mono opacity-60">${item.cur}</td>
+                        <td class="px-8 py-5 text-right text-xs opacity-60 italic">${item.pointVal}</td>
+                        <td class="px-8 py-5 text-right mono font-bold">${item.margin.toLocaleString()}</td>
+                        <td class="px-8 py-5 text-right bg-blue-500/5">
+                            <div class="text-lg font-black text-blue-500 tracking-tighter">
                                 <span class="text-[10px] mr-1 opacity-50">NT$</span>${twd.toLocaleString()}
                             </div>
                         </td>
@@ -145,6 +168,8 @@
         }
 
         document.getElementById('search').addEventListener('input', render);
+        // 自動載入
+        fetchData();
     </script>
 </body>
 </html>
