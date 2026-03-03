@@ -2,83 +2,149 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <title>Margin Monitor v2.4.0</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advanced Margin Terminal v2.5.0</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Noto+Sans+TC:wght@400;700;900&display=swap');
+        body { font-family: 'Noto Sans TC', sans-serif; background-color: #020617; }
+        .mono { font-family: 'JetBrains Mono', monospace; }
+        .glass { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(16px); border: 1px solid rgba(255, 255, 255, 0.1); }
+        .favorited { color: #f59e0b !important; }
+        .card-hover:hover { border-color: #3b82f6; background: rgba(59, 130, 246, 0.05); }
+    </style>
 </head>
-<body class="bg-[#05070a] text-slate-200">
+<body class="text-slate-200 min-h-screen pb-20">
 
-    <nav class="p-4 border-b border-white/10 bg-slate-900 shadow-2xl">
-        <div class="max-w-5xl mx-auto flex justify-between items-center">
-            <h1 class="font-black italic text-blue-500">MARGIN SYSTEM v2.4.0</h1>
-            <div class="flex gap-4 font-mono text-xs">
-                <span class="text-slate-400">USD: <b id="r-u" class="text-emerald-400">--</b></span>
-                <span class="text-slate-400">JPY: <b id="r-j" class="text-emerald-400">--</b></span>
+    <nav class="sticky top-0 z-50 glass px-6 py-4">
+        <div class="max-w-6xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
+            <div class="flex items-center gap-3">
+                <div class="bg-blue-600 p-2 rounded-lg shadow-lg shadow-blue-500/50">
+                    <i class="fas fa-chart-pie text-white"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl font-black italic tracking-tighter">MARGIN <span class="text-blue-500">TERMINAL</span></h1>
+                    <div id="update-tag" class="text-[10px] text-slate-500 mono uppercase tracking-widest">System Ready</div>
+                </div>
+            </div>
+            
+            <div class="flex gap-4">
+                <div class="bg-slate-800/50 px-4 py-2 rounded-xl border border-white/5 flex items-center gap-2">
+                    <i class="fas fa-dollar-sign text-emerald-500"></i>
+                    <span class="text-xs mono">USD <b id="r-u" class="text-emerald-400">--</b></span>
+                </div>
+                <div class="bg-slate-800/50 px-4 py-2 rounded-xl border border-white/5 flex items-center gap-2">
+                    <i class="fas fa-yen-sign text-blue-400"></i>
+                    <span class="text-xs mono">JPY <b id="r-j" class="text-blue-400">--</b></span>
+                </div>
             </div>
         </div>
     </nav>
 
-    <main class="max-w-4xl mx-auto p-6">
-        <button onclick="loadData()" id="btn" class="w-full mb-6 bg-blue-600 p-4 rounded-xl font-bold flex items-center justify-center gap-2">
-            <i id="icon" class="fas fa-sync"></i> 同步雲端試算表
-        </button>
-
-        <div class="bg-white/5 rounded-2xl overflow-hidden border border-white/10">
-            <table class="w-full text-left">
-                <thead class="bg-white/5 text-[10px] uppercase text-slate-500">
-                    <tr>
-                        <th class="p-4">商品 / 代碼</th>
-                        <th class="p-4 text-right">原始保證金</th>
-                        <th class="p-4 text-right text-blue-400">台幣估計</th>
-                    </tr>
-                </thead>
-                <tbody id="list" class="divide-y divide-white/5 text-sm">
-                    <tr><td colspan="3" class="p-10 text-center text-slate-500">等待同步...</td></tr>
-                </tbody>
-            </table>
+    <main class="max-w-6xl mx-auto px-6 mt-8">
+        <div class="flex flex-col md:flex-row gap-4 mb-8">
+            <div class="relative flex-grow">
+                <i class="fas fa-search absolute left-5 top-1/2 -translate-y-1/2 text-slate-500"></i>
+                <input type="text" id="search" placeholder="搜尋商品名稱、代碼 (如: NQ, ES, 原油)..." 
+                    class="w-full bg-slate-900 border border-white/10 rounded-2xl pl-14 pr-6 py-4 focus:ring-2 focus:ring-blue-500 outline-none transition-all">
+            </div>
+            <button onclick="fetchData()" class="bg-blue-600 hover:bg-blue-500 px-8 py-4 rounded-2xl font-bold transition-all flex items-center justify-center gap-2 shadow-lg shadow-blue-600/20 active:scale-95">
+                <i id="sync-icon" class="fas fa-sync-alt"></i> 同步數據
+            </button>
         </div>
-        <div id="debug" class="mt-4 text-[10px] text-red-400 font-mono text-center"></div>
+
+        <div class="glass rounded-[2rem] overflow-hidden shadow-2xl">
+            <div class="overflow-x-auto">
+                <table class="w-full text-left">
+                    <thead class="bg-white/5 text-[11px] uppercase tracking-widest text-slate-500">
+                        <tr>
+                            <th class="px-8 py-5">追蹤</th>
+                            <th class="px-8 py-5">商品資訊 (代碼)</th>
+                            <th class="px-8 py-5">幣別</th>
+                            <th class="px-8 py-5 text-right">大點價值</th>
+                            <th class="px-8 py-5 text-right">原始保證金</th>
+                            <th class="px-8 py-5 text-right bg-blue-500/10 text-blue-400">台幣估計</th>
+                        </tr>
+                    </thead>
+                    <tbody id="list" class="divide-y divide-white/5">
+                        <tr><td colspan="6" class="p-32 text-center text-slate-500 italic">請點擊同步按鈕載入雲端試算表...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
     </main>
 
     <script>
-        const API = "https://script.google.com/macros/s/AKfycbznaiPus_QbMeKr-iuLSqcDvcxNuvuhB6RZrgK9VSeNh-IBskYRpCvaiugD24qXONM0/exec";
+        const GAS_URL = "https://script.google.com/macros/s/AKfycbznaiPus_QbMeKr-iuLSqcDvcxNuvuhB6RZrgK9VSeNh-IBskYRpCvaiugD24qXONM0/exec";
+        let state = { margins: [], rates: {}, favorites: JSON.parse(localStorage.getItem('favs') || '[]') };
 
-        async function loadData() {
-            const btn = document.getElementById('icon');
-            btn.classList.add('fa-spin');
+        async function fetchData() {
+            const icon = document.getElementById('sync-icon');
+            icon.classList.add('fa-spin');
             try {
-                const res = await fetch(API);
+                const res = await fetch(GAS_URL);
                 const data = await res.json();
-                
-                if(data.error) {
-                    document.getElementById('debug').innerText = "GAS錯誤: " + data.error;
-                    return;
-                }
-
+                state.margins = data.margins;
+                state.rates = data.rates;
                 document.getElementById('r-u').innerText = data.rates.USD;
                 document.getElementById('r-j').innerText = data.rates.JPY;
-
-                const tbody = document.getElementById('list');
-                tbody.innerHTML = data.margins.map(item => {
-                    const rate = data.rates[item.cur] || 1;
-                    const twd = Math.round(item.margin * rate);
-                    return `
-                        <tr class="hover:bg-white/5">
-                            <td class="p-4">
-                                <div class="font-bold">${item.name}</div>
-                                <div class="text-[10px] text-slate-500">${item.id} (${item.pointVal})</div>
-                            </td>
-                            <td class="p-4 text-right font-mono">${item.margin.toLocaleString()} <small class="text-slate-500">${item.cur}</small></td>
-                            <td class="p-4 text-right text-lg font-black text-blue-400">NT$ ${twd.toLocaleString()}</td>
-                        </tr>
-                    `;
-                }).join('');
-            } catch (e) {
-                document.getElementById('debug').innerText = "連線失敗，請檢查網址或權限";
-            } finally {
-                btn.classList.remove('fa-spin');
-            }
+                document.getElementById('update-tag').innerText = "Last Update: " + data.lastUpdate;
+                render();
+            } catch (e) { alert("連線錯誤，請檢查網址或權限設定。"); }
+            finally { icon.classList.remove('fa-spin'); }
         }
+
+        function toggleFav(id) {
+            const idx = state.favorites.indexOf(id);
+            if (idx > -1) state.favorites.splice(idx, 1);
+            else state.favorites.push(id);
+            localStorage.setItem('favs', JSON.stringify(state.favorites));
+            render();
+        }
+
+        function render() {
+            const q = document.getElementById('search').value.toLowerCase();
+            const container = document.getElementById('list');
+            
+            // 排序：最愛置頂，其餘按代碼排
+            const sorted = [...state.margins].sort((a, b) => {
+                const aFav = state.favorites.includes(a.id) ? 0 : 1;
+                const bFav = state.favorites.includes(b.id) ? 0 : 1;
+                return aFav - bFav || a.id.localeCompare(b.id);
+            });
+
+            const filtered = sorted.filter(i => (i.name + i.id).toLowerCase().includes(q));
+
+            container.innerHTML = filtered.map(item => {
+                const isFav = state.favorites.includes(item.id);
+                const rate = state.rates[item.cur] || 1;
+                const twd = Math.round(item.margin * rate);
+                return `
+                    <tr class="card-hover transition-all group">
+                        <td class="px-8 py-5 text-center">
+                            <button onclick="toggleFav('${item.id}')" class="text-slate-700 hover:scale-125 transition-transform">
+                                <i class="fas fa-star ${isFav ? 'favorited' : ''}"></i>
+                            </button>
+                        </td>
+                        <td class="px-8 py-5">
+                            <div class="font-bold text-white group-hover:text-blue-400 transition-colors">${item.name}</div>
+                            <div class="text-[10px] mono text-slate-500">${item.id}</div>
+                        </td>
+                        <td class="px-8 py-5 text-xs mono text-slate-400">${item.cur}</td>
+                        <td class="px-8 py-5 text-right text-xs text-slate-400 italic">${item.pointVal}</td>
+                        <td class="px-8 py-5 text-right mono font-bold text-slate-300">${item.margin.toLocaleString()}</td>
+                        <td class="px-8 py-5 text-right bg-blue-500/5 transition-colors">
+                            <div class="text-lg font-black text-blue-400 tracking-tighter">
+                                <span class="text-[10px] mr-1 opacity-50">NT$</span>${twd.toLocaleString()}
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        document.getElementById('search').addEventListener('input', render);
     </script>
 </body>
 </html>
